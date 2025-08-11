@@ -36,3 +36,13 @@ def test_attach_badges_handles_string_inputs():
         "",
         "Low%AMZ FewSellers",
     ]
+
+
+def test_attach_badges_handles_missing_columns():
+    df = pd.DataFrame([
+        {"asin": "A1"},
+        {"asin": "A2"},
+    ])
+    result = attach_badges_for_pairs(df)
+    assert "pair_badges" in result.columns
+    assert list(result["pair_badges"]) == ["", ""]
