@@ -79,10 +79,24 @@ def compute_margins(
 
 def attach_badges_for_pairs(df_pairs: pd.DataFrame) -> pd.DataFrame:
     df = df_pairs.copy()
-    cond_no_amz = df.get("amazon_offer_availability_sell","").astype(str).str.contains("no amazon offer", case=False, na=False)
-    cond_oos90 = pd.to_numeric(df.get("amazon_90d_oos_sell", 0), errors="coerce").fillna(0) > 10
-    cond_low_amz_pct = pd.to_numeric(df.get("buybox_pct_amz_90d_sell", 0), errors="coerce").fillna(0) < 0.2
-    cond_few_sellers = pd.to_numeric(df.get("total_offer_count_sell", 0), errors="coerce").fillna(0) <= 8
+    # Safely handle missing columns by providing defaults that preserve existing behaviour
+    default_str = pd.Series("", index=df.index)
+
+    cond_no_amz = (
+        df.get("amazon_offer_availability_sell", default_str)
+        .astype(str)
+        .str.contains("no amazon offer", case=False, na=False)
+    )
+
+    def numeric_condition(col: str, op: Callable[[pd.Series], pd.Series]) -> pd.Series:
+        if col in df.columns:
+            values = pd.to_numeric(df[col], errors="coerce").fillna(0)
+            return op(values)
+        return pd.Series(False, index=df.index)
+
+    cond_oos90 = numeric_condition("amazon_90d_oos_sell", lambda s: s > 10)
+    cond_low_amz_pct = numeric_condition("buybox_pct_amz_90d_sell", lambda s: s < 0.2)
+    cond_few_sellers = numeric_condition("total_offer_count_sell", lambda s: s <= 8)
     df["pair_badges"] = (
         cond_no_amz.map({True:"No Amazon", False:""}).fillna("")
         + cond_oos90.map({True:" OOS90", False:""}).fillna("")
