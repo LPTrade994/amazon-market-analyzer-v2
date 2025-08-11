@@ -2,7 +2,7 @@ from __future__ import annotations
 import pandas as pd
 from typing import List
 from .schema import normalize_headers
-from .transforms import parse_price, parse_percent, coerce_numeric, ensure_country_column
+from .transforms import parse_price, parse_percent, parse_int, coerce_numeric, ensure_country_column
 from .config import PRICE_COLS, PCT_COLS, INT_COLS
 
 def read_any(path_or_file):
@@ -18,7 +18,7 @@ def load_many(files: List) -> pd.DataFrame:
         df = normalize_headers(df)
         df = coerce_numeric(df, PRICE_COLS, parse_price)
         df = coerce_numeric(df, PCT_COLS, parse_percent)
-        df = coerce_numeric(df, INT_COLS, lambda x: int(float(x)) if x not in (None, "", "nan") else None)
+        df = coerce_numeric(df, INT_COLS, parse_int)
         df = ensure_country_column(df)
         frames.append(df)
     if not frames:
