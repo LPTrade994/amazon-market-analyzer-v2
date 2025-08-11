@@ -1,0 +1,1 @@
+# amazon-market-analyzer-v2
