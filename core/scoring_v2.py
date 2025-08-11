@@ -30,28 +30,47 @@ def add_opportunity_score(df: pd.DataFrame, weights: dict | None = None) -> pd.D
 
 def add_detectors(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
+
+    numeric_cols = [
+        "amazon_90d_oos",
+        "score_demand",
+        "margin_pct",
+        "flipability_90d",
+        "buybox_std_90d",
+        "buybox_current",
+        "buybox_pct_amz_90d",
+        "total_offer_count",
+        "return_rate",
+    ]
+
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(
+            df.get(col, pd.Series([0] * len(df), index=df.index)),
+            errors="coerce",
+        ).fillna(0)
+
     cond_window = (
-        (df.get("amazon_90d_oos", 0).fillna(0) > 10)
-        & (df.get("score_demand", 0) > 0.55)
-        & (df.get("margin_pct", 0) > 0.12)
+        (df["amazon_90d_oos"] > 10)
+        & (df["score_demand"] > 0.55)
+        & (df["margin_pct"] > 0.12)
     )
     cond_flip = (
-        (df.get("flipability_90d", 0).fillna(0) > 80)
-        | (df.get("buybox_std_90d", 0).fillna(0) > (df.get("buybox_current", 0).fillna(1)*0.12))
-    ) & (df.get("score_demand", 0) > 0.45)
+        (df["flipability_90d"] > 80)
+        | (df["buybox_std_90d"] > (df["buybox_current"] * 0.12))
+    ) & (df["score_demand"] > 0.45)
     cond_low_guard = (
-        (df.get("buybox_pct_amz_90d", 0).fillna(0) < 0.2)
-        & (df.get("total_offer_count", 0).fillna(0) <= 8)
+        (df["buybox_pct_amz_90d"] < 0.2)
+        & (df["total_offer_count"] <= 8)
     )
     cond_risk = (
-        (df.get("map_restriction", "no").astype(str).str.lower().isin(["yes","true","1"]))
-        | (df.get("return_rate", 0).fillna(0) > 0.15)
+        (df.get("map_restriction", "no").astype(str).str.lower().isin(["yes", "true", "1"]))
+        | (df["return_rate"] > 0.15)
     )
-    df["badge_window"] = cond_window.map({True:"Window Advantage", False:""})
-    df["badge_flip"] = cond_flip.map({True:"Volatility Flip", False:""})
-    df["badge_lowguard"] = cond_low_guard.map({True:"Low Guarded Buybox", False:""})
-    df["badge_risk"] = cond_risk.map({True:"Risk Alert", False:""})
-    df["badges"] = df[["badge_window","badge_flip","badge_lowguard","badge_risk"]].apply(
-        lambda r: ", ".join([b for b in r if b]), axis=1
-    )
+    df["badge_window"] = cond_window.map({True: "Window Advantage", False: ""})
+    df["badge_flip"] = cond_flip.map({True: "Volatility Flip", False: ""})
+    df["badge_lowguard"] = cond_low_guard.map({True: "Low Guarded Buybox", False: ""})
+    df["badge_risk"] = cond_risk.map({True: "Risk Alert", False: ""})
+    df["badges"] = df[
+        ["badge_window", "badge_flip", "badge_lowguard", "badge_risk"]
+    ].apply(lambda r: ", ".join([b for b in r if b]), axis=1)
     return df
