@@ -19,7 +19,12 @@ def _norm(x, low, high):
     x = _to_numeric(x)
     low = _to_numeric(low)
     high = _to_numeric(high)
-    rng = np.maximum(high - low, 1e-9)
+    diff = high - low
+    rng = np.nanmax(
+        np.stack([diff, np.full_like(diff, 1e-9, dtype=float)], axis=0), axis=0
+    )
+    if np.isscalar(rng):
+        rng = float(rng)
     v = (x - low) / rng
     return np.clip(v, 0.0, 1.0)
 
