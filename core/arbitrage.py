@@ -80,9 +80,9 @@ def compute_margins(
 def attach_badges_for_pairs(df_pairs: pd.DataFrame) -> pd.DataFrame:
     df = df_pairs.copy()
     cond_no_amz = df.get("amazon_offer_availability_sell","").astype(str).str.contains("no amazon offer", case=False, na=False)
-    cond_oos90 = df.get("amazon_90d_oos_sell", 0).fillna(0) > 10
-    cond_low_amz_pct = df.get("buybox_pct_amz_90d_sell", 1).fillna(1) < 0.2
-    cond_few_sellers = df.get("total_offer_count_sell", 99).fillna(99) <= 8
+    cond_oos90 = pd.to_numeric(df.get("amazon_90d_oos_sell", 0), errors="coerce").fillna(0) > 10
+    cond_low_amz_pct = pd.to_numeric(df.get("buybox_pct_amz_90d_sell", 0), errors="coerce").fillna(0) < 0.2
+    cond_few_sellers = pd.to_numeric(df.get("total_offer_count_sell", 0), errors="coerce").fillna(0) <= 8
     df["pair_badges"] = (
         cond_no_amz.map({True:"No Amazon", False:""}).fillna("")
         + cond_oos90.map({True:" OOS90", False:""}).fillna("")
