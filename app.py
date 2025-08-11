@@ -102,10 +102,10 @@ vat_df = st.sidebar.data_editor(vat_df, use_container_width=True, num_rows="dyna
 st.session_state.vat_map.update({row["Country"]: float(row["VAT"]) for _, row in vat_df.iterrows() if row.get("Country")})
 
 # Editor sconti
- disc_rows = [{"Country": c, "Discount": st.session_state.discount_map.get(c, 0.0)} for c in (countries or list(DEFAULT_VAT.keys()))]
- disc_df = pd.DataFrame(disc_rows)
- disc_df = st.sidebar.data_editor(disc_df, use_container_width=True, num_rows="dynamic", key="disc_editor")
- st.session_state.discount_map.update({row["Country"]: float(row["Discount"]) for _, row in disc_df.iterrows() if row.get("Country")})
+disc_rows = [{"Country": c, "Discount": st.session_state.discount_map.get(c, 0.0)} for c in (countries or list(DEFAULT_VAT.keys()))]
+disc_df = pd.DataFrame(disc_rows)
+disc_df = st.sidebar.data_editor(disc_df, use_container_width=True, num_rows="dynamic", key="disc_editor")
+st.session_state.discount_map.update({row["Country"]: float(row["Discount"]) for _, row in disc_df.iterrows() if row.get("Country")}) for _, row in disc_df.iterrows() if row.get("Country")})
 
 # Marketplace di vendita se non c'è file target
 sell_market_if_single = st.sidebar.selectbox(
@@ -284,14 +284,23 @@ if use_fast:
     cond_demand = (pd.to_numeric(base.get("Drops last 30 days"), errors='coerce') >= min_drops) | \
                   (pd.to_numeric(base.get("Bought in past month"), errors='coerce') >= min_bought)
     cond_stable = (std_pct <= max_std_pct)
-    amazon_pct = pd.to_numeric(base.get("Buy Box: % Amazon 90 days").apply(parse_pct) if isinstance(base.get("Buy Box: % Amazon 90 days").iloc[0] if len(base)>0 else None, str) else base.get("Buy Box: % Amazon 90 days"), errors='coerce')
+    amz_col = "Buy Box: % Amazon 90 days"
+amz_series = base[amz_col] if amz_col in base.columns else pd.Series([np.nan]*len(base))
+if amz_series.dtype == object:
+    amz_series = amz_series.apply(parse_pct)
+amazon_pct = pd.to_numeric(amz_series, errors='coerce')
     cond_amz = (amazon_pct.fillna(0) <= amazon_pct_max)
     mask_all &= cond_demand.fillna(False) & cond_stable.fillna(False) & cond_amz.fillna(False)
 
 if use_oos:
-    amazon_pct = pd.to_numeric(base.get("Buy Box: % Amazon 90 days"), errors='coerce')
-    if amazon_pct.max() is not np.nan and amazon_pct.max() > 1.0:
-        # se è in % (0..100), normalizza
+    amz_col = "Buy Box: % Amazon 90 days"
+amz_series = base[amz_col] if amz_col in base.columns else pd.Series([np.nan]*len(base))
+if amz_series.dtype == object:
+    amz_series = amz_series.apply(parse_pct)
+amazon_pct = pd.to_numeric(amz_series, errors='coerce')
+if pd.notna(amazon_pct.max()) and amazon_pct.max() > 1.0:
+    # se è in % (0..100), normalizza
+    amazon_pct = amazon_pct/100.0100), normalizza
         amazon_pct = amazon_pct/100.0
     cond_amz_low = (amazon_pct.fillna(0) <= amazon_pct_max)
     oos_count = pd.to_numeric(base.get("Amazon: OOS Count 90 days"), errors='coerce')
