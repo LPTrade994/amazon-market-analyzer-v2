@@ -2,8 +2,24 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+def _to_numeric(val):
+    """Convert input to numeric, replacing non-convertible values with 0."""
+    if np.isscalar(val):
+        try:
+            val = float(val)
+        except (TypeError, ValueError):
+            val = 0.0
+        return 0.0 if np.isnan(val) else val
+    val = pd.to_numeric(val, errors="coerce")
+    if hasattr(val, "fillna"):
+        return val.fillna(0)
+    return np.nan_to_num(val, nan=0.0)
+
 def _norm(x, low, high):
-    rng = max(high - low, 1e-9)
+    x = _to_numeric(x)
+    low = _to_numeric(low)
+    high = _to_numeric(high)
+    rng = np.maximum(high - low, 1e-9)
     v = (x - low) / rng
     return np.clip(v, 0.0, 1.0)
 
