@@ -55,6 +55,14 @@ def parse_percent(x):
     except:
         return None
 
+def parse_int(x):
+    if x is None or x == "" or pd.isna(x):
+        return None
+    try:
+        return int(float(x))
+    except:
+        return None
+
 def coerce_numeric(df: pd.DataFrame, cols: list[str], fn) -> pd.DataFrame:
     df = df.copy()
     for c in cols:
